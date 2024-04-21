@@ -1,20 +1,17 @@
 questLogButton = nil
-questLineWindow = nil
+window = nil
+button = nil
 
 function init()
-  g_ui.importStyle('questlogwindow')
-  g_ui.importStyle('questlinewindow')
 
   questLogButton = modules.client_topmenu.addLeftGameButton('questLogButton', tr('Quest Log'), '/images/topbuttons/questlog', function() g_game.requestQuestLog() end)
 
   connect(g_game, { onQuestLog = onGameQuestLog,
-                    onQuestLine = onGameQuestLine,
                     onGameEnd = destroyWindows})
 end
 
 function terminate()
   disconnect(g_game, { onQuestLog = onGameQuestLog,
-                       onQuestLine = onGameQuestLine,
                        onGameEnd = destroyWindows})
 
   destroyWindows()
@@ -22,30 +19,29 @@ function terminate()
 end
 
 function destroyWindows()
-  if questLogWindow then
-    questLogWindow:destroy()
+  if window then
+    window:destroy()
   end
 
-  if questLineWindow then
-    questLineWindow:destroy()
+  if button then
+    button:destroy()
   end
 end
 
+--Who needs quests anyways when you have jump game
 function onGameQuestLog(quests)
   destroyWindows()
 
-  questLogWindow = g_ui.createWidget('QuestLogWindow', rootWidget)
-  local questList = questLogWindow:getChildById('questList')
+  --Creating ui elements
+  window = g_ui.createWidget('JumpWindow', rootWidget)
+  button = g_ui.createWidget('JumpButton', window)
+  restartJumpButton()
 
-  for i,questEntry in pairs(quests) do
-    local id, name, completed = unpack(questEntry)
-
-    local questLabel = g_ui.createWidget('QuestLabel', questList)
-    questLabel:setOn(completed)
-    questLabel:setText(name)
-    questLabel.onDoubleClick = function()
-      questLogWindow:hide()
-      g_game.requestQuestLine(id)
+  --setting callback for jump button
+  button.onMouseRelease = function(widget, mousePos, mouseButton)
+    if widget:containsPoint(mousePos) and mouseButton ~= MouseMidButton then
+      restartJumpButton()
+      return true
     end
   end
 
@@ -56,32 +52,27 @@ function onGameQuestLog(quests)
   questList:focusChild(questList:getFirstChild())
 end
 
-function onGameQuestLine(questId, questMissions)
-  if questLogWindow then questLogWindow:hide() end
-  if questLineWindow then questLineWindow:destroy() end
+--Callback function - Sets jump button to right side of window.
+function restartJumpButton()
+  removeEvent(button.event)
 
-  questLineWindow = g_ui.createWidget('QuestLineWindow', rootWidget)
-  local missionList = questLineWindow:getChildById('missionList')
-  local missionDescription = questLineWindow:getChildById('missionDescription')
+  local topLeftX = window:getX()
+  local topLeftY = window:getY()
+  local width = window:getWidth()
+  local height = window:getHeight()
 
-  connect(missionList, { onChildFocusChange = function(self, focusedChild)
-    if focusedChild == nil then return end
-    missionDescription:setText(focusedChild.description)
-  end })
+  --Finding random spot on right side of window
+  local randomSpot = math.random(topLeftY, (topLeftY + height))
 
-  for i,questMission in pairs(questMissions) do
-    local name, description = unpack(questMission)
+  button:setY(randomSpot)
+  button:setX(topLeftX + width - button:getWidth())
 
-    local missionLabel = g_ui.createWidget('MissionLabel')
-    missionLabel:setText(name)
-    missionLabel.description = description
-    missionList:addChild(missionLabel)
-  end
+  button.event = scheduleEvent(moveJumpButton, 10)
+end
 
-  questLineWindow.onDestroy = function()
-    if questLogWindow then questLogWindow:show() end
-    questLineWindow = nil
-  end
-
-  missionList:focusChild(missionList:getFirstChild())
+--Function to move jump button to the left and restart if it hits the left edge
+function moveJumpButton()
+  button:setX(button:getX() - 1)
+  button.event = scheduleEvent(moveJumpButton, 10)
+  if button:getX() < window:getX() then restartJumpButton() end
 end
