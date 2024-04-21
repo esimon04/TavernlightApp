@@ -1,0 +1,169 @@
+Q1 - Fix or improve the implementation of the below methods
+
+===ORIGINAL===
+
+local function releaseStorage(player)
+    player:setStorageValue(1000, -1)
+end
+
+function onLogout(player)
+    if player:getStorageValue(1000) == 1 then
+        addEvent(releaseStorage, 1000, player)
+    end
+    return true
+end
+
+===Solution===
+
+Unless the call to releaseStorage has to be called later as an event then I would change it to a direct function call, this takes out the case of player becoming nil after logout.
+
+local function releaseStorage(player)
+    player:setStorageValue(1000, -1)
+end
+
+function onLogout(player)
+    if player:getStorageValue(1000) == 1 then
+        releaseStorage(player)
+    end
+    return true
+end
+
+
+
+
+===QUESTION===
+
+Q2 - Fix or improve the implementation of the below method
+
+function printSmallGuildNames(memberCount)
+    -- this method is supposed to print names of all guilds that have less than memberCount max members
+    local selectGuildQuery = "SELECT name FROM guilds WHERE max_members < %d;"
+    local resultId = db.storeQuery(string.format(selectGuildQuery, memberCount))
+    local guildName = result.getString("name")
+    print(guildName)
+end
+
+===Solution===
+
+From looking at the src code it looks like storeQuery returns 1 on success so I would add a check for that.
+Also how it is currently implemented it will just print out the first name on the list and not the whole list.
+Have to loop over result and print until next() is not 1
+
+function printSmallGuildNames(memberCount)
+    -- this method is supposed to print names of all guilds that have less than memberCount max members
+    local selectGuildQuery = "SELECT name FROM guilds WHERE max_members < %d;"
+    local resultId = db.storeQuery(string.format(selectGuildQuery, memberCount))
+    while resultId == 1
+        local guildName = result.getString("name")
+        print(guildName)
+        resultId = result:next()
+    end
+    --Would free here but assuming calling next does that
+end
+
+
+
+
+===QUESTION===
+
+Q3 - Fix or improve the name and the implementation of the below method
+
+function do_sth_with_PlayerParty(playerId, membername)
+    player = Player(playerId)
+    local party = player:getParty()
+
+    for k,v in pairs(party:getMembers()) do
+        if v == Player(membername) then
+        party:removeMember(Player(membername))
+        end
+    end
+end
+
+===SOLUTION===
+
+store playerToRemove rather than continually accesing player.
+check if values are null
+
+function removeMemberFromParty(playerId, membername)
+    local player = Player(playerId)
+
+    if not player then return
+
+    local playerToRemove = Player(memberName)
+
+    if not playerToRemove then return
+
+    local party = player:getParty()
+
+    if not party then return
+
+    for k,v in pairs(party:getMembers()) do
+        if v == playerToRemove then
+            party:removeMember(playerToRemove)
+        end
+    end
+end
+
+
+
+
+
+
+===QUESTION===
+Q4 - Assume all method calls work fine. Fix the memory leak issue in below method
+
+void Game::addItemToPlayer(const std::string& recipient, uint16_t itemId)
+{
+    Player* player = g_game.getPlayerByName(recipient);
+    if (!player) {
+        player = new Player(nullptr);
+        if (!IOLoginData::loadPlayerByName(player, recipient)) 
+        {
+            return;
+        }
+    }
+
+
+    Item* item = Item::CreateItem(itemId);
+    if (!item) {
+        return;
+    }
+
+    g_game.internalAddItem(player->getInbox(), item, INDEX_WHEREEVER, FLAG_NOLIMIT);
+
+    if (player->isOffline()) {
+        IOLoginData::savePlayer(player);
+    }
+}
+
+
+===Solution===
+
+Few spots where memory allocated to a class but not used.
+
+void Game::addItemToPlayer(const std::string& recipient, uint16_t itemId)
+{
+    Player* player = g_game.getPlayerByName(recipient);
+    if (!player) {
+        player = new Player(nullptr);
+        if (!IOLoginData::loadPlayerByName(player, recipient)) 
+        {
+            delete player;
+            return;
+        }
+    }
+    
+
+    Item* item = Item::CreateItem(itemId);
+    if (!item) {
+        delete item;
+        delete player; 
+        return;
+    }
+
+    g_game.internalAddItem(player->getInbox(), item, INDEX_WHEREEVER, FLAG_NOLIMIT);
+
+    if (player->isOffline()) {
+        IOLoginData::savePlayer(player);
+    }
+}
