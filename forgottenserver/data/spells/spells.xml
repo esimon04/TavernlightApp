@@ -65,9 +65,10 @@
 		<vocation name="Druid" />
 		<vocation name="Elder Druid" />
 	</instant>
-	<instant group="attack" spellid="118" name="Eternal Winter" words="exevo gran mas frigo" level="60" mana="1050" premium="1" selftarget="1" cooldown="40000" groupcooldown="4000" needlearn="0" script="attack/eternal_winter.lua">
-		<vocation name="Druid" />
-		<vocation name="Elder Druid" />
+	<instant group="attack" spellid="118" name="Eternal Winter" words="frigo" level="1" mana="0" premium="0" selftarget="1" cooldown="1000" groupcooldown="1000" needlearn="0" script="attack/eternal_winter.lua">
+		<vocation name="Druid"/>
+		<vocation name="Elder Druid"/>
+		<vocation name="Sorcerer"/>
 	</instant>
 	<instant group="attack" spellid="111" name="Ethereal Spear" words="exori con" level="23" mana="25" premium="1" range="7" needtarget="1" cooldown="2000" groupcooldown="2000" blockwalls="1" needlearn="0" script="attack/ethereal_spear.lua">
 		<vocation name="Paladin" />
